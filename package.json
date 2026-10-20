@@ -1,0 +1,17 @@
+{
+  "name": "captain-pikachu",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/qr.mjs",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^3.1.2",
+    "qrcode": "^1.5.4",
+    "svelte": "^4.2.19",
+    "vite": "^5.4.11"
+  }
+}
