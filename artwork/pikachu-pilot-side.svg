@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <g id="s-tail">
+    <path fill="#F2C73A" stroke="#D9A62A" stroke-width="4" stroke-linejoin="round" d="M 420 790 L 340 700 L 376 690 L 262 540 L 292 646 L 244 632 L 350 820 Z"/>
+    <path fill="#8B5A2B" d="M 400 800 L 436 770 L 470 810 L 436 836 Z"/>
+  </g>
+  <g id="s-ear">
+    <path fill="#F7D44C" d="M 470 350 C 440 300 418 220 426 90 C 500 150 560 220 586 300 Z"/>
+    <path fill="#1B1B1F" d="M 426 90 C 428 130 436 165 450 198 C 486 180 512 160 536 140 C 505 118 468 100 426 90 Z"/>
+  </g>
+  <g id="s-trousers"><path fill="#1B1B1F" d="M 410 780 L 620 780 L 620 868 C 620 904 594 920 556 920 L 474 920 C 436 920 410 904 410 868 Z"/></g>
+  <g id="s-feet"><ellipse cx="560" cy="912" rx="64" ry="28" fill="#1B1B1F"/><ellipse cx="470" cy="914" rx="46" ry="24" fill="#121216"/></g>
+  <g id="s-shirt"><path fill="#F6F3EC" d="M 404 626 C 404 606 420 596 440 596 L 600 596 C 620 596 636 606 636 626 L 636 790 L 404 790 Z"/><path fill="#FFFFFF" stroke="#D9D4C7" stroke-width="2.5" d="M 560 596 L 622 596 L 606 640 L 560 626 Z"/></g>
+  <g id="s-arm">
+    <path fill="#F7D44C" stroke="#D9A62A" stroke-width="4" d="M 700 716 C 700 692 684 678 660 678 L 600 686 L 600 748 L 660 754 C 684 754 700 740 700 716 Z"/>
+    <path fill="#F6F3EC" d="M 612 684 L 560 684 L 560 752 L 612 752 C 624 752 632 740 632 718 C 632 696 624 684 612 684 Z"/>
+  </g>
+  <g id="s-head"><path fill="#F7D44C" d="M 330 440 C 330 300 410 228 512 228 C 630 228 720 300 720 440 C 720 562 636 644 512 644 C 400 644 330 562 330 440 Z"/></g>
+  <g id="s-cheek"><ellipse cx="652" cy="524" rx="40" ry="38" fill="#E8453C"/></g>
+  <g id="s-eye"><ellipse cx="610" cy="438" rx="30" ry="44" fill="#111111"/><circle cx="602" cy="424" r="11" fill="#FFFFFF"/></g>
+  <g id="s-nose"><ellipse cx="712" cy="474" rx="7" ry="5" fill="#111111"/></g>
+  <g id="s-mouth"><path fill="none" stroke="#111111" stroke-width="6" stroke-linecap="round" d="M 664 504 Q 690 530 714 502"/></g>
+  <g id="s-cap">
+    <path fill="#1B1B1F" d="M 360 306 C 350 176 440 128 530 128 C 620 128 700 176 696 306 Z"/>
+    <path fill="#C9A227" d="M 356 298 L 700 298 L 700 310 L 356 310 Z"/>
+    <path fill="#111111" d="M 560 300 L 770 306 C 790 320 786 340 760 346 L 560 346 Z"/>
+    <path fill="#C9A227" d="M 582 192 L 620 186 L 626 212 L 588 220 Z"/>
+    <circle cx="650" cy="206" r="22" fill="#E53935"/><path fill="#FFFFFF" d="M 628 206 A 22 22 0 0 0 672 206 Z"/><circle cx="650" cy="206" r="6" fill="#FFFFFF" stroke="#1B1B1F" stroke-width="3"/>
+  </g>
+</svg>

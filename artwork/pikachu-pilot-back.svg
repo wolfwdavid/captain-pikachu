@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <g id="b-clip">
+    <circle id="b-clip-ring" cx="512" cy="112" r="46" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+    <circle id="b-clip-ring-shade" cx="512" cy="112" r="46" fill="none" stroke="#D8D8DC" stroke-width="4"/>
+    <path id="b-clip-strap" fill="#FFFFFF" d="M 500 150 L 524 150 L 530 200 L 494 200 Z"/>
+  </g>
+
+  <g id="b-ear-left">
+    <path id="b-ear-left-fur" fill="#F7D44C" d="M 332.0 362.0 C 294.8 317.4 263.8 254.3 242.2 181.8 C 229.0 137.4 219.3 89.4 214.0 40.0 C 246.7 67.4 282.2 97.9 316.5 130.4 C 372.5 183.4 425.0 241.7 456.0 300.0 Z"/>
+    <path id="b-ear-left-tip" fill="#1B1B1F" d="M 242.2 181.8 C 229.0 137.4 219.3 89.4 214.0 40.0 C 246.7 67.4 282.2 97.9 316.5 130.4 Z"/>
+  </g>
+
+  <g id="b-ear-right">
+    <path id="b-ear-right-fur" fill="#F7D44C" d="M 692.0 362.0 C 729.2 317.4 760.2 254.3 781.8 181.8 C 795.0 137.4 804.7 89.4 810.0 40.0 C 777.3 67.4 741.8 97.9 707.5 130.4 C 651.5 183.4 599.0 241.7 568.0 300.0 Z"/>
+    <path id="b-ear-right-tip" fill="#1B1B1F" d="M 781.8 181.8 C 795.0 137.4 804.7 89.4 810.0 40.0 C 777.3 67.4 741.8 97.9 707.5 130.4 Z"/>
+  </g>
+  <g id="b-trousers"><path fill="#1B1B1F" d="M 386 770 L 638 770 L 638 868 C 638 910 606 926 560 926 L 464 926 C 418 926 386 910 386 868 Z"/></g>
+  <g id="b-feet"><ellipse cx="448" cy="916" rx="54" ry="28" fill="#1B1B1F"/><ellipse cx="576" cy="916" rx="54" ry="28" fill="#1B1B1F"/></g>
+  <g id="b-shirt">
+    <path fill="#F6F3EC" d="M 392 626 C 392 606 410 596 432 596 L 592 596 C 614 596 632 606 632 626 L 632 790 L 392 790 Z"/>
+    <path id="b-collar" fill="#FFFFFF" stroke="#D9D4C7" stroke-width="2.5" d="M 436 596 L 588 596 L 580 624 L 444 624 Z"/>
+    <path id="b-seam" fill="none" stroke="#E6E1D6" stroke-width="3" d="M 512 624 L 512 790"/>
+  </g>
+  <g id="b-arm-left">
+    <path fill="#F7D44C" stroke="#D9A62A" stroke-width="4" d="M 296 716 C 296 692 314 678 340 678 L 400 686 L 400 748 L 340 754 C 314 754 296 740 296 716 Z"/>
+    <path fill="#F6F3EC" d="M 392 684 L 442 684 L 442 752 L 392 752 C 380 752 372 740 372 718 C 372 696 380 684 392 684 Z"/>
+  </g>
+  <g id="b-arm-right">
+    <path fill="#F7D44C" stroke="#D9A62A" stroke-width="4" d="M 728 716 C 728 692 710 678 684 678 L 624 686 L 624 748 L 684 754 C 710 754 728 740 728 716 Z"/>
+    <path fill="#F6F3EC" d="M 632 684 L 582 684 L 582 752 L 632 752 C 644 752 652 740 652 718 C 652 696 644 684 632 684 Z"/>
+  </g>
+  <g id="b-tail">
+    <path id="b-tail-bolt" fill="#F2C73A" stroke="#D9A62A" stroke-width="4" stroke-linejoin="round" d="M 500 790 L 590 706 L 556 694 L 664 548 L 640 648 L 686 634 L 580 816 Z"/>
+    <ellipse id="b-tail-base" cx="520" cy="796" rx="58" ry="42" fill="#8B5A2B"/>
+  </g>
+  <g id="b-head"><path fill="#F7D44C" d="M 282 440 C 282 300 380 228 512 228 C 644 228 742 300 742 440 C 742 562 650 644 512 644 C 374 644 282 562 282 440 Z"/></g>
+  <g id="b-cap">
+    <path fill="#1B1B1F" d="M 336 306 C 326 176 420 128 512 128 C 604 128 698 176 688 306 Z"/>
+    <path fill="#C9A227" d="M 334 298 L 690 298 L 690 310 L 334 310 Z"/>
+    <path fill="#2E2E34" d="M 512 134 C 520 190 520 250 512 304 C 504 250 504 190 512 134 Z"/>
+  </g>
+</svg>
