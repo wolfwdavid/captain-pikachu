@@ -1,0 +1,48 @@
+/* Rig, idle loop and state rules for the Pikachu SVGs (global on purpose: the SVG is injected with @html) */
+  #pikachu-root, #ear-left, #ear-right, #tail, #arm-right, #arm-left, #eye-left, #eye-right, #cheeks, #sparks, #b-ear-left, #b-ear-right, #b-tail, #s-ear, #s-tail { transform-box: view-box; }
+  #ear-left, #b-ear-left  { transform-origin: 340px 350px; }
+  #ear-right, #b-ear-right { transform-origin: 684px 350px; }
+  #tail      { transform-origin: 640px 800px; }
+  #b-tail    { transform-origin: 520px 796px; }
+  #s-tail    { transform-origin: 420px 800px; }
+  #s-ear     { transform-origin: 500px 330px; }
+  #arm-right { transform-origin: 612px 716px; transition: transform .28s cubic-bezier(.2,.9,.3,1.2); }
+  #arm-left  { transform-origin: 412px 716px; transition: transform .28s cubic-bezier(.2,.9,.3,1.2); }
+  #eye-left  { transform-origin: 440px 438px; }
+  #eye-right { transform-origin: 584px 438px; }
+  #cheeks    { transform-origin: 512px 522px; }
+  #eye-left-white, #eye-left-shine, #eye-right-white, #eye-right-shine { transition: transform .12s ease-out, opacity .15s ease; }
+  #sparks { transform-origin: 512px 480px; transform: scale(.4); opacity: 0; transition: transform .25s ease-out, opacity .25s ease-out; }
+  #eye-left-happy, #eye-right-happy, #mouth-laugh, #mouth-tongue { opacity: 0; transition: opacity .15s ease; }
+  #mouth-smile { transition: opacity .15s ease; }
+
+  @keyframes bob   { 0%,100% { transform: translateY(0) }  50% { transform: translateY(-10px) } }
+  @keyframes earL  { 0%,100% { transform: rotate(0) }      50% { transform: rotate(-4deg) } }
+  @keyframes earR  { 0%,100% { transform: rotate(0) }      50% { transform: rotate(4deg) } }
+  @keyframes blink { 0%,92%,100% { transform: scaleY(1) }  96% { transform: scaleY(.08) } }
+  @keyframes shake { 0%,100% { transform: rotate(0) } 25% { transform: rotate(-3deg) translateY(4px) } 75% { transform: rotate(3deg) translateY(4px) } }
+  @keyframes cheekpop { 0% { transform: scale(1) } 40% { transform: scale(1.18) } 100% { transform: scale(1) } }
+  @keyframes wagB  { 0%,100% { transform: rotate(0) } 50% { transform: rotate(-8deg) } }
+  main.awake #pikachu-root { animation: bob 3.2s ease-in-out infinite; }
+  main.awake #ear-left, #b-ear-left  { animation: earL 3.2s ease-in-out infinite; }
+  main.awake #ear-right, #b-ear-right { animation: earR 3.2s ease-in-out infinite; }
+  main.awake #b-tail, #s-tail { animation: wagB 2.4s ease-in-out infinite; }
+  main.awake #eye-left, main.awake #eye-right { animation: blink 4.6s linear infinite; }
+
+  .figure.salute #arm-right { transform: rotate(-100deg); }
+  .figure.wave   #arm-right { transform: rotate(-45deg); }
+  .figure.happy  #sparks, .figure.laugh #sparks { transform: scale(1); opacity: 1; }
+  .figure.happy  #eye-left-happy, .figure.happy #eye-right-happy, .figure.laugh #eye-left-happy, .figure.laugh #eye-right-happy { opacity: 1; }
+  .figure.happy  #eye-left-white, .figure.happy #eye-right-white, .figure.happy #eye-left-shine, .figure.happy #eye-right-shine,
+  .figure.laugh  #eye-left-white, .figure.laugh #eye-right-white, .figure.laugh #eye-left-shine, .figure.laugh #eye-right-shine { opacity: 0; }
+  .figure.happy  #cheeks, .figure.laugh #cheeks { animation: cheekpop .5s ease-out; }
+  .figure.laugh  #mouth-smile { opacity: 0; }
+  .figure.laugh  #mouth-laugh, .figure.laugh #mouth-tongue { opacity: 1; }
+  .figure.laugh  #pikachu-root { animation: shake .22s ease-in-out 6; }
+  .figure.laugh  #arm-left  { transform: rotate(35deg); }
+  .figure.laugh  #arm-right { transform: rotate(-35deg); }
+
+  @media (prefers-reduced-motion: reduce) {
+    main.awake #pikachu-root, #ear-left, #ear-right, #b-ear-left, #b-ear-right, #b-tail, #s-tail, #eye-left, #eye-right, .figure.laugh #pikachu-root, .wake { animation: none; }
+    .face, #arm-right, #arm-left, #sparks { transition: none; }
+  }
