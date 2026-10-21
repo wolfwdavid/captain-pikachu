@@ -58,12 +58,14 @@
   async function wake() {
     if (awake) return;
     awake = true; ensureAudio(); hint = "Move your phone around — Pikachu follows you";
+    let allowed = "DeviceOrientationEvent" in window;
     try {
-      if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
-        const r = await DeviceOrientationEvent.requestPermission(); tiltOk = r === "granted";
-      } else { tiltOk = "DeviceOrientationEvent" in window; }
-    } catch (_) { tiltOk = false; }
-    if (tiltOk) window.addEventListener("deviceorientation", onTilt, { passive: true });
+      if (allowed && typeof DeviceOrientationEvent.requestPermission === "function") {
+        allowed = (await DeviceOrientationEvent.requestPermission()) === "granted";
+      }
+    } catch (_) { allowed = false; }
+    // tiltOk flips on only once real readings arrive (desktops expose the API but never fire it)
+    if (allowed) window.addEventListener("deviceorientation", onTilt, { passive: true });
     chirp();
   }
 
@@ -92,7 +94,9 @@
   function dragEnd() { dragging = false; }
 
   function onTilt(e) {
-    if (e.alpha == null) return;
+    if (e.alpha == null && e.beta == null && e.gamma == null) return;
+    if (!tiltOk) { tiltOk = true; hint = "Turn around — the scene and Pikachu follow you"; }
+    if (e.alpha == null) { tPitch = clamp(((e.beta ?? 90) - 60) * 0.5, -25, 25); tYaw = clamp(e.gamma ?? 0, -30, 30) * 0.6; return; }
     if (yaw0 === null) yaw0 = e.alpha;
     // alpha: compass yaw (0-360). Turning around moves the scene; Pikachu keeps following you.
     tYaw = -wrap(e.alpha - yaw0) * 1.0;
