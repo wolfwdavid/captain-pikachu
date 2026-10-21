@@ -69,17 +69,61 @@
     } catch (_) { hint = "Microphone not available"; }
   }
 
-  // ---- camera background ---------------------------------------------------
-  async function toggleCamera() {
-    if (camera) { stream?.getTracks().forEach((t) => t.stop()); stream = null; camera = false; return; }
+  // ---- camera background / selfie -------------------------------------------
+  let facing = "environment";   // environment = room behind the phone, user = selfie
+  let fx = false;               // afterimage ghost trails
+  let ghost = 0;                // current ghost distance (px), driven by spin speed
+  let lastYaw = 0, flash = false, shotUrl = "";
+  async function startCamera(mode) {
+    stream?.getTracks().forEach((t) => t.stop()); stream = null;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
-      camera = true; cameraError = "";
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: mode }, width: { ideal: 1280 } }, audio: false });
+      facing = mode; camera = true; cameraError = "";
       await tick0(); if (videoEl) { videoEl.srcObject = stream; await videoEl.play().catch(() => {}); }
-      hint = "Pikachu is in your room — walk around him";
+      hint = mode === "user" ? "Smile — tap the shutter to take a selfie with Pikachu" : "Pikachu is in your room — walk around him";
     } catch (e) { cameraError = "Camera not available (allow camera access and use https)."; camera = false; }
   }
+  function stopCamera() { stream?.getTracks().forEach((t) => t.stop()); stream = null; camera = false; hint = "Move your phone around — Pikachu follows you"; }
+  const toggleCamera = () => (camera && facing === "environment" ? stopCamera() : startCamera("environment"));
+  const toggleSelfie = () => (camera && facing === "user" ? stopCamera() : startCamera("user"));
   const tick0 = () => new Promise((r) => setTimeout(r, 0));
+
+  // Shutter: video frame + the Pikachu drawing → PNG (share sheet on phones, download elsewhere)
+  async function shutter() {
+    if (!videoEl || !videoEl.videoWidth) return;
+    flash = true; setTimeout(() => (flash = false), 180); say("salute");
+    const W = videoEl.videoWidth, H = videoEl.videoHeight;
+    const c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
+    if (facing === "user") { g.translate(W, 0); g.scale(-1, 1); }
+    g.drawImage(videoEl, 0, 0, W, H);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    // where the figure sits on screen → same place in the video frame (object-fit: cover)
+    const sr = sceneEl.getBoundingClientRect(), fr = figEl.getBoundingClientRect();
+    const s = Math.max(sr.width / W, sr.height / H), ox = (sr.width - W * s) / 2, oy = (sr.height - H * s) / 2;
+    const x = (fr.left - sr.left - ox) / s, y = (fr.top - sr.top - oy) / s, w = fr.width / s, h = fr.height / s;
+    const visible = ["front", "side", "back", "sideL"].map((k) => faces[k]).filter((el) => el && parseFloat(el.style.opacity || "0") > 0.5)[0] || faces.front;
+    const svgText = new XMLSerializer().serializeToString(visible.querySelector("svg"));
+    const img = new Image();
+    await new Promise((res) => { img.onload = res; img.onerror = res; img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgText); });
+    if (fx) { g.globalAlpha = 0.55; g.drawImage(img, x - w * 0.035, y, w, h); g.globalCompositeOperation = "screen"; g.drawImage(img, x + w * 0.035, y, w, h); g.globalCompositeOperation = "source-over"; g.globalAlpha = 1; }
+    g.drawImage(img, x, y, w, h);
+    g.font = `${Math.round(W * 0.035)}px Inter, system-ui, sans-serif`; g.fillStyle = "rgba(255,255,255,.9)"; g.strokeStyle = "rgba(0,0,0,.5)"; g.lineWidth = 4;
+    g.strokeText("Captain Pikachu ✈ HND", W * 0.04, H * 0.96); g.fillText("Captain Pikachu ✈ HND", W * 0.04, H * 0.96);
+    const blob = await new Promise((r) => c.toBlob(r, "image/png"));
+    shotUrl = URL.createObjectURL(blob);
+    const file = new File([blob], "captain-pikachu-selfie.png", { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: "Captain Pikachu" }); return; } catch (_) {} }
+    const a = document.createElement("a"); a.href = shotUrl; a.download = "captain-pikachu-selfie.png"; a.click();
+  }
+
+  // Load any sound file from the phone (kept in this browser only — never uploaded)
+  let fileEl;
+  function loadSoundFile(e) {
+    const f = e.target.files?.[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { myPika = r.result; voice = "mine"; try { localStorage.setItem("myPika", myPika); } catch (_) {} hint = `Voice: ${f.name}`; say("salute"); };
+    r.readAsDataURL(f);
+  }
 
   // ---- interactions -------------------------------------------------------
   let timer = 0;
@@ -144,23 +188,27 @@
     requestAnimationFrame(frame);
     if (!awake) return;
     const dy = wrap(tYaw - yaw); yaw = wrap(yaw + dy * 0.08); pitch += (tPitch - pitch) * 0.08;
+    // afterimage: ghost distance follows how fast he is spinning, then fades
+    const speed = Math.abs(wrap(yaw - lastYaw)); lastYaw = yaw;
+    ghost += ((fx ? 4 + Math.min(28, speed * 6) : 0) - ghost) * 0.15;
+    figEl?.style.setProperty("--ghost", `${ghost.toFixed(1)}px`);
     sceneEl?.style.setProperty("--pan", `${-yaw * 3}px`);
     sceneEl?.style.setProperty("--tilt", `${pitch * 2}px`);
     // which drawing shows depends on the angle; each one also leans a little for depth
-    const fx = clamp(pitch * 0.4, -14, 14);
+    const rx = clamp(pitch * 0.4, -14, 14);   // up/down lean (NOT the afterimage toggle `fx`)
     for (const [k, c] of [["front", 0], ["side", 90], ["back", 180], ["sideL", -90]]) {
       const el = faces[k]; if (!el) continue;
       const { sx, opacity, d } = facePose(yaw, c);
       el.style.opacity = opacity; el.style.visibility = opacity > 0.01 ? "visible" : "hidden";
       el.style.zIndex = String(Math.round(opacity * 10));
-      el.style.transform = `perspective(1400px) rotateX(${fx}deg) rotateY(${d * 0.15}deg) scaleX(${k === "sideL" ? -sx : sx})`;
+      el.style.transform = `perspective(1400px) rotateX(${rx}deg) rotateY(${d * 0.15}deg) scaleX(${k === "sideL" ? -sx : sx})`;
     }
     if (tail) tail.style.transform = `rotate(${Math.sin(now / 500) * 7}deg)`;
     const fy = clamp(wrap(yaw) * 0.5, -40, 40);
     for (const eye of eyes) {
       let ex, ey;
       if (pointerTarget && !tiltOk) { const vx = pointerTarget.x - eye.cx, vy = pointerTarget.y - eye.cy, d = Math.hypot(vx, vy) || 1, k = Math.min(1, d / 400); ex = (vx / d) * 7 * k; ey = (vy / d) * 7 * k; }
-      else { ex = clamp(-fy / 40, -1, 1) * 7; ey = clamp(fx / 14, -1, 1) * 5; }
+      else { ex = clamp(-fy / 40, -1, 1) * 7; ey = clamp(rx / 14, -1, 1) * 5; }
       eye.white.style.transform = `translate(${ex}px, ${ey}px)`;
       eye.shine.style.transform = `translate(${ex * 1.6}px, ${ey * 1.6}px)`;
     }
@@ -192,12 +240,12 @@
        on:pointermove={onMove} on:pointermove={dragMove}
        on:pointerdown={dragStart} on:pointerup={dragEnd} on:pointercancel={dragEnd} on:pointerleave={dragEnd}>
     {#if camera}
-      <video class="cam" bind:this={videoEl} autoplay muted playsinline></video>
+      <video class="cam" class:mirror={facing === "user"} bind:this={videoEl} autoplay muted playsinline></video>
     {:else}
       <div class="sky"></div><div class="clouds"></div><div class="skyline"></div><div class="runway"></div>
     {/if}
 
-    <div class="figure {state}" bind:this={figEl}>
+    <div class="figure {state}" class:fx bind:this={figEl}>
       <div class="stage" role="button" tabindex="0" aria-label="Pikachu. Tap to salute, poke the belly to make him laugh, drag to spin him around."
            on:pointerdown|stopPropagation={onPointerDown}>
         <div class="face" id="face-front">{@html svg}</div>
@@ -210,6 +258,10 @@
     {#if !awake}
       <button class="wake" on:click={wake}>Tap to wake Captain Pikachu</button>
     {/if}
+    {#if camera}
+      <button class="shutter" on:click|stopPropagation={shutter} aria-label="Take photo"></button>
+    {/if}
+    {#if flash}<div class="flash"></div>{/if}
   </div>
 
   <header><h1>Captain Pikachu</h1><p>{hint}</p>{#if cameraError}<p class="err">{cameraError}</p>{/if}</header>
@@ -218,7 +270,11 @@
     <button on:click={() => { ensureAudio(); wave(); }}>Wave</button>
     <button on:click={() => { ensureAudio(); happy(); }}>Happy</button>
     <button on:click={() => { ensureAudio(); laugh(); }}>Laugh</button>
-    <button on:click={toggleCamera} aria-pressed={camera}>{camera ? "Scene" : "Camera"}</button>
+    <button on:click={toggleCamera} aria-pressed={camera && facing === "environment"}>{camera && facing === "environment" ? "Scene" : "Camera"}</button>
+    <button on:click={toggleSelfie} aria-pressed={camera && facing === "user"}>{camera && facing === "user" ? "Scene" : "Selfie"}</button>
+    <button on:click={() => (fx = !fx)} aria-pressed={fx}>Afterimage: {fx ? "on" : "off"}</button>
+    <button on:click={() => fileEl.click()}>Load sound</button>
+    <input type="file" accept="audio/*" bind:this={fileEl} on:change={loadSoundFile} hidden />
     <button on:click={() => (soundOn = !soundOn)} aria-pressed={soundOn}>Sound: {soundOn ? "on" : "off"}</button>
     <button on:click={() => (voice = voice === "pika" ? "chirp" : voice === "chirp" ? (myPika ? "mine" : "pika") : "pika")}>Voice: {voice === "pika" ? "Pika" : voice === "chirp" ? "Chirp" : "Mine"}</button>
     <button on:click={recordPika}>{recording ? "Stop" : "Record my pika"}</button>
@@ -240,6 +296,14 @@
 
   .scene { position: absolute; inset: 0; overflow: hidden; --pan: 0px; --tilt: 0px; }
   .cam { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cam.mirror { transform: scaleX(-1); }
+  .shutter { position: absolute; left: 50%; bottom: calc(max(12px, env(safe-area-inset-bottom)) + 64px); transform: translateX(-50%); width: 72px; height: 72px; border-radius: 50%; border: 5px solid #fff; background: rgba(255,255,255,.35); box-shadow: 0 0 0 3px rgba(0,0,0,.35), 0 8px 24px rgba(0,0,0,.4); cursor: pointer; }
+  .shutter:active { transform: translateX(-50%) scale(.92); }
+  .flash { position: absolute; inset: 0; background: #fff; animation: flash .18s ease-out forwards; pointer-events: none; }
+  @keyframes flash { from { opacity: .9 } to { opacity: 0 } }
+  /* afterimage: a cyan ghost trails one way, a magenta ghost the other, distance = spin speed */
+  .figure { --ghost: 0px; }
+  .figure.fx .stage { filter: drop-shadow(calc(var(--ghost) * -1) 0 0 rgba(25, 211, 230, .75)) drop-shadow(var(--ghost) 0 0 rgba(255, 46, 184, .75)) drop-shadow(0 18px 24px rgba(20, 30, 60, .3)); }
   .sky { position: absolute; inset: -20% 0; background: linear-gradient(#bcd4ff 0%, #e8f0ff 55%, #fff4c2 100%); transform: translateY(var(--tilt)); }
   .clouds, .skyline, .runway { position: absolute; left: 0; right: 0; background-repeat: repeat-x; transform: translate3d(var(--pan), var(--tilt), 0); will-change: transform; }
   .clouds  { top: 6%; height: 30%; background-image: radial-gradient(circle at 20% 60%, #fff 0 60px, transparent 61px), radial-gradient(circle at 48% 40%, #fff 0 46px, transparent 47px), radial-gradient(circle at 75% 65%, #fff 0 70px, transparent 71px); background-size: 1080px 100%; opacity: .9; transform: translate3d(calc(var(--pan) * .4), calc(var(--tilt) * .6), 0); }

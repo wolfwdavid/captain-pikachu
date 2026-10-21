@@ -12,9 +12,14 @@ Interactive 360° toy of the Haneda (HND) pilot-uniform Pikachu plush. Built wit
   front → side → back (with the Pokéball clip and tail) → side → front. Tilt moves the view up/down.
 - **Desktop:** mouse-look, drag to spin him, or ← / → keys.
 - **Camera** button: uses your rear camera as the background so Pikachu stands in *your* room.
+- **Selfie** button: front camera (mirrored) + a shutter. The photo is the live frame with Pikachu drawn on top
+  and a small caption; on phones it opens the share sheet, elsewhere it downloads `captain-pikachu-selfie.png`.
+- **Afterimage** toggle: cyan/magenta ghost trails that stretch with how fast he spins (the workshop's theme).
+  Also baked into selfies when it's on.
 - Tap Pikachu → salute · **poke his belly → he laughs** · `W` wave · `H` sparks · `L` laugh.
-- **Voice:** "Pika" (synthesized in-browser, no copyrighted audio), "Chirp" (Web Audio), or **Record my pika**
-  (3-second mic clip, saved in your browser) — cycle with the Voice button. Sound toggle.
+- **Voice:** "Pika" (synthesized in-browser), "Chirp" (Web Audio), **Record my pika** (3-second mic clip) or
+  **Load sound** (pick any audio file from your device, e.g. a Pikachu clip you own). Recorded/loaded sounds stay
+  in your browser's local storage only — nothing is uploaded and no copyrighted audio ships in this repo.
 - Respects `prefers-reduced-motion`.
 
 ## Dev
