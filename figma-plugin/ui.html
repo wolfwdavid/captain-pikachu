@@ -1,0 +1,17 @@
+<style>
+  body { font: 13px Inter, system-ui, sans-serif; margin: 12px; color: var(--figma-color-text, #1b1b1f); background: var(--figma-color-bg, #fff); }
+  h1 { font-size: 14px; margin: 0 0 10px; }
+  button { display: block; width: 100%; margin: 0 0 6px; padding: 8px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; font: inherit; }
+  button.primary { background: #f5c518; border-color: #d9a62a; font-weight: 600; }
+</style>
+<h1>⚡ Captain Pikachu</h1>
+<button class="primary" data-names="front,side,back">Insert all three views</button>
+<button data-names="front">Insert front</button>
+<button data-names="side">Insert side</button>
+<button data-names="back">Insert back</button>
+<button id="live">Open live selfie (face tracking) ↗</button>
+<script>
+  document.querySelectorAll("[data-names]").forEach((b) => b.onclick = () =>
+    parent.postMessage({ pluginMessage: { type: "insert", names: b.dataset.names.split(",") } }, "*"));
+  document.getElementById("live").onclick = () => parent.postMessage({ pluginMessage: { type: "live" } }, "*");
+</script>

@@ -71,22 +71,69 @@
 
   // ---- camera background / selfie -------------------------------------------
   let facing = "environment";   // environment = room behind the phone, user = selfie
-  let fx = false;               // afterimage ghost trails
+  // filters: `fig` styles Pikachu, `cam` styles the camera picture (both also baked into the shutter photo)
+  const FILTERS = [
+    { id: "none", label: "None", fig: "", cam: "" },
+    { id: "afterimage", label: "Afterimage", fig: "", cam: "" },
+    { id: "electric", label: "Electric", fig: "drop-shadow(0 0 10px #ffe14d) drop-shadow(0 0 26px #ffb800)", cam: "saturate(1.25) contrast(1.05)" },
+    { id: "neon", label: "Neon", fig: "drop-shadow(0 0 10px #ff2eb8) drop-shadow(0 0 24px #19d3e6)", cam: "hue-rotate(200deg) saturate(2) contrast(1.2)" },
+    { id: "retro", label: "Retro", fig: "sepia(.6) contrast(1.1)", cam: "sepia(.7) contrast(1.1) brightness(1.05)" },
+    { id: "noir", label: "Noir", fig: "grayscale(1) contrast(1.3)", cam: "grayscale(1) contrast(1.3)" },
+    { id: "comic", label: "Comic", fig: "contrast(1.5) saturate(1.8)", cam: "contrast(1.6) saturate(1.9)" },
+    { id: "dream", label: "Dream", fig: "drop-shadow(0 0 18px rgba(255,255,255,.9))", cam: "blur(2px) brightness(1.15) saturate(1.3)" },
+  ];
+  let filterIdx = 0, menuOpen = true;
+  $: filter = FILTERS[filterIdx];
+  $: fx = filter.id === "afterimage";   // afterimage ghost trails
   let ghost = 0;                // current ghost distance (px), driven by spin speed
   let lastYaw = 0, flash = false, shotUrl = "";
   async function startCamera(mode) {
     stream?.getTracks().forEach((t) => t.stop()); stream = null;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: mode }, width: { ideal: 1280 } }, audio: false });
-      facing = mode; camera = true; cameraError = "";
+      facing = mode; camera = true; cameraError = ""; unperch();
       await tick0(); if (videoEl) { videoEl.srcObject = stream; await videoEl.play().catch(() => {}); }
-      hint = mode === "user" ? "Smile — tap the shutter to take a selfie with Pikachu" : "Pikachu is in your room — walk around him";
+      if (mode === "user") loadDetector();
+      hint = mode === "user" ? "Pikachu hops on your head — tap the shutter for a selfie" : "Pikachu is in your room — walk around him";
     } catch (e) { cameraError = "Camera not available (allow camera access and use https)."; camera = false; }
   }
-  function stopCamera() { stream?.getTracks().forEach((t) => t.stop()); stream = null; camera = false; hint = "Move your phone around — Pikachu follows you"; }
+  function stopCamera() { stream?.getTracks().forEach((t) => t.stop()); stream = null; camera = false; unperch(); hint = "Move your phone around — Pikachu follows you"; }
   const toggleCamera = () => (camera && facing === "environment" ? stopCamera() : startCamera("environment"));
   const toggleSelfie = () => (camera && facing === "user" ? stopCamera() : startCamera("user"));
   const tick0 = () => new Promise((r) => setTimeout(r, 0));
+
+  // ---- selfie face tracking: Pikachu perches on top of your head ------------
+  // MediaPipe face detector, loaded only the first time Selfie is opened.
+  let detector = null, detectorLoading = null, lastDetect = 0, missed = 0, perch = null;
+  function loadDetector() {
+    return (detectorLoading ||= (async () => {
+      try {
+        const { FilesetResolver, FaceDetector } = await import("@mediapipe/tasks-vision");
+        const files = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/wasm");
+        detector = await FaceDetector.createFromOptions(files, {
+          baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite", delegate: "GPU" },
+          runningMode: "VIDEO", minDetectionConfidence: 0.5,
+        });
+      } catch (_) { detectorLoading = null; }
+    })());
+  }
+  function unperch() { perch = null; missed = 0; if (figEl) for (const p of ["left", "top", "width", "margin-left", "bottom"]) figEl.style.removeProperty(p); }
+  // face box (video pixels) → where the figure should stand on screen (object-fit: cover, mirrored)
+  function trackFace(now) {
+    if (!detector || !camera || facing !== "user" || !videoEl?.videoWidth || now - lastDetect < 60) return;
+    lastDetect = now;
+    let box;
+    try { box = detector.detectForVideo(videoEl, now).detections[0]?.boundingBox; } catch (_) { return; }
+    if (!box) { if (++missed > 10) unperch(); return; }
+    missed = 0;
+    const W = videoEl.videoWidth, H = videoEl.videoHeight, sr = sceneEl.getBoundingClientRect();
+    const s = Math.max(sr.width / W, sr.height / H), ox = (sr.width - W * s) / 2, oy = (sr.height - H * s) / 2;
+    const cx = ox + (W - box.originX - box.width / 2) * s, top = oy + box.originY * s, w = box.width * s * 1.5;
+    // feet sit just below the hairline: the figure is square and his feet are ~90% down it
+    const t = { x: cx - w / 2, y: top - w * 0.78, w };
+    perch = perch ? { x: perch.x + (t.x - perch.x) * 0.35, y: perch.y + (t.y - perch.y) * 0.35, w: perch.w + (t.w - perch.w) * 0.35 } : t;
+    Object.assign(figEl.style, { left: `${perch.x}px`, top: `${perch.y}px`, width: `${perch.w}px`, marginLeft: "0", bottom: "auto" });
+  }
 
   // Shutter: video frame + the Pikachu drawing → PNG (share sheet on phones, download elsewhere)
   async function shutter() {
@@ -95,8 +142,10 @@
     const W = videoEl.videoWidth, H = videoEl.videoHeight;
     const c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
     if (facing === "user") { g.translate(W, 0); g.scale(-1, 1); }
+    g.filter = filter.cam || "none";
     g.drawImage(videoEl, 0, 0, W, H);
     g.setTransform(1, 0, 0, 1, 0, 0);
+    g.filter = filter.fig || "none";
     // where the figure sits on screen → same place in the video frame (object-fit: cover)
     const sr = sceneEl.getBoundingClientRect(), fr = figEl.getBoundingClientRect();
     const s = Math.max(sr.width / W, sr.height / H), ox = (sr.width - W * s) / 2, oy = (sr.height - H * s) / 2;
@@ -107,6 +156,7 @@
     await new Promise((res) => { img.onload = res; img.onerror = res; img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgText); });
     if (fx) { g.globalAlpha = 0.55; g.drawImage(img, x - w * 0.035, y, w, h); g.globalCompositeOperation = "screen"; g.drawImage(img, x + w * 0.035, y, w, h); g.globalCompositeOperation = "source-over"; g.globalAlpha = 1; }
     g.drawImage(img, x, y, w, h);
+    g.filter = "none";
     g.font = `${Math.round(W * 0.035)}px Inter, system-ui, sans-serif`; g.fillStyle = "rgba(255,255,255,.9)"; g.strokeStyle = "rgba(0,0,0,.5)"; g.lineWidth = 4;
     g.strokeText("Captain Pikachu ✈ HND", W * 0.04, H * 0.96); g.fillText("Captain Pikachu ✈ HND", W * 0.04, H * 0.96);
     const blob = await new Promise((r) => c.toBlob(r, "image/png"));
@@ -186,6 +236,7 @@
 
   function frame(now) {
     requestAnimationFrame(frame);
+    trackFace(now);
     if (!awake) return;
     const dy = wrap(tYaw - yaw); yaw = wrap(yaw + dy * 0.08); pitch += (tPitch - pitch) * 0.08;
     // afterimage: ghost distance follows how fast he is spinning, then fades
@@ -235,18 +286,19 @@
   });
 </script>
 
-<main class:awake class:tilt={tiltOk} class:camera>
+<main class:awake class:tilt={tiltOk} class:camera class:menu-hidden={!menuOpen}>
   <div class="scene" bind:this={sceneEl}
        on:pointermove={onMove} on:pointermove={dragMove}
        on:pointerdown={dragStart} on:pointerup={dragEnd} on:pointercancel={dragEnd} on:pointerleave={dragEnd}>
     {#if camera}
-      <video class="cam" class:mirror={facing === "user"} bind:this={videoEl} autoplay muted playsinline></video>
+      <video class="cam" class:mirror={facing === "user"} bind:this={videoEl} style:filter={filter.cam || null} autoplay muted playsinline></video>
     {:else}
       <div class="sky"></div><div class="clouds"></div><div class="skyline"></div><div class="runway"></div>
     {/if}
 
     <div class="figure {state}" class:fx bind:this={figEl}>
       <div class="stage" role="button" tabindex="0" aria-label="Pikachu. Tap to salute, poke the belly to make him laugh, drag to spin him around."
+           style:filter={filter.fig ? `${filter.fig} drop-shadow(0 18px 24px rgba(20, 30, 60, .3))` : null}
            on:pointerdown|stopPropagation={onPointerDown}>
         <div class="face" id="face-front">{@html svg}</div>
         <div class="face" id="face-side">{@html svgSide}</div>
@@ -266,13 +318,22 @@
 
   <header><h1>Captain Pikachu</h1><p>{hint}</p>{#if cameraError}<p class="err">{cameraError}</p>{/if}</header>
 
-  <div class="bar">
+  <button class="menu-toggle" on:click={() => (menuOpen = !menuOpen)} aria-expanded={menuOpen} aria-label={menuOpen ? "Hide menu" : "Show menu"}>{menuOpen ? "✕" : "☰"}</button>
+  {#if camera && !menuOpen}
+    <button class="filter-chip" on:click={() => (filterIdx = (filterIdx + 1) % FILTERS.length)}>✨ {filter.label}</button>
+  {/if}
+
+  <div class="bar" hidden={!menuOpen}>
+    <div class="filters" role="group" aria-label="Filters">
+      {#each FILTERS as f, i}
+        <button class:on={i === filterIdx} aria-pressed={i === filterIdx} on:click={() => (filterIdx = i)}>{f.label}</button>
+      {/each}
+    </div>
     <button on:click={() => { ensureAudio(); wave(); }}>Wave</button>
     <button on:click={() => { ensureAudio(); happy(); }}>Happy</button>
     <button on:click={() => { ensureAudio(); laugh(); }}>Laugh</button>
     <button on:click={toggleCamera} aria-pressed={camera && facing === "environment"}>{camera && facing === "environment" ? "Scene" : "Camera"}</button>
     <button on:click={toggleSelfie} aria-pressed={camera && facing === "user"}>{camera && facing === "user" ? "Scene" : "Selfie"}</button>
-    <button on:click={() => (fx = !fx)} aria-pressed={fx}>Afterimage: {fx ? "on" : "off"}</button>
     <button on:click={() => fileEl.click()}>Load sound</button>
     <input type="file" accept="audio/*" bind:this={fileEl} on:change={loadSoundFile} hidden />
     <button on:click={() => (soundOn = !soundOn)} aria-pressed={soundOn}>Sound: {soundOn ? "on" : "off"}</button>
@@ -324,6 +385,14 @@
   h1 { margin: 0; font-size: 22px; font-weight: 700; } p { margin: 4px 0 0; font-size: 14px; color: inherit; opacity: .8; } .err { color: #ffb4b4; }
   .bar { position: absolute; bottom: max(12px, env(safe-area-inset-bottom)); left: 0; right: 0; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; padding: 0 10px; }
   .bar button { font: 500 13px Inter, system-ui, sans-serif; min-height: 44px; padding: 8px 14px; border-radius: 999px; cursor: pointer; border: 1.5px solid rgba(27,27,31,.18); background: rgba(255,255,255,.88); color: #1b1b1f; }
+  .bar[hidden] { display: none; }
+  .filters { flex-basis: 100%; display: flex; gap: 6px; overflow-x: auto; justify-content: safe center; padding-bottom: 2px; scrollbar-width: none; }
+  .filters button { flex: none; min-height: 36px; padding: 6px 12px; }
+  .filters button.on { background: #f5c518; border-color: #d9a62a; font-weight: 600; }
+  .menu-toggle { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px; width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid rgba(27,27,31,.18); background: rgba(255,255,255,.88); color: #1b1b1f; font-size: 18px; cursor: pointer; }
+  .filter-chip { position: absolute; left: 50%; transform: translateX(-50%); bottom: max(12px, env(safe-area-inset-bottom)); font: 600 13px Inter, system-ui, sans-serif; min-height: 40px; padding: 8px 16px; border-radius: 999px; border: 0; background: rgba(0,0,0,.45); color: #fff; cursor: pointer; }
+  main.menu-hidden .shutter { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 56px); }
+  main:not(.menu-hidden) .shutter { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 112px); }
   .bar button:active { transform: scale(.97); } .bar button:focus-visible { outline: 3px solid #1f2a5c; outline-offset: 2px; }
   .qr { position: absolute; inset: 0; display: grid; place-content: center; gap: 10px; background: rgba(27,27,31,.6); backdrop-filter: blur(6px); text-align: center; color: #fff; }
   .qr img { width: min(70vw, 360px); border-radius: 16px; background: #fff; padding: 12px; }
